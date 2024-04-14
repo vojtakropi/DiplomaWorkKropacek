@@ -5,14 +5,15 @@ import sys
 import math
 from tensorflow.python.client import device_lib
 import cv2 as cv
-from tensorflow.keras.callbacks import ModelCheckpoint, LearningRateScheduler, EarlyStopping
+from keras.callbacks import ModelCheckpoint, LearningRateScheduler, EarlyStopping
 from keras.callbacks import TensorBoard, ReduceLROnPlateau, EarlyStopping
 import os
 import glob
 
+
 # Image manipulation
 from generator import DataGen, getIds, preprocess_image
-from tensorflow.keras.utils import img_to_array
+from keras.utils import img_to_array
 import keras.backend as kb
 # Statistics
 from sewar import full_ref as fr
@@ -25,7 +26,7 @@ np.random.seed = seed
 # Image size
 SIZE = 512
 INPUT_SHAPE = (SIZE, SIZE, 1)
-BATCH_SIZE = 10
+BATCH_SIZE = 5
 
 ## LOSS FUNCTIONS
 
@@ -73,14 +74,19 @@ def ms_ssim(y_true, y_pred):
     _mssim = tf.reduce_mean(tf.image.ssim_multiscale(y_true, y_pred, max_val=1))
     return _mssim
 
+
+def fix_gpu():
+    config = tf.compat.v1.ConfigProto()
+    config.gpu_options.allow_growth = True
+    session = tf.compat.v1.InteractiveSession(config=config)
     
 ## Check capabilities
 def check_capabilities():
     ## GPU Check
-
+    # fix_gpu()
     print(device_lib.list_local_devices())
 
-    print("Num of GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
+    print("Num of GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
 
     tf.test.is_built_with_cuda()
 
@@ -127,9 +133,9 @@ def load_weights(model, file_name):
 
 ## INTERNAL TEST SET
 def get_test_data(RGB=False):
-    t_path = "ribs_suppresion/new/augmented/test/"
+    t_path = "val/"
 
-    test_path = t_path + "JSRT/"
+    test_path = t_path + "orig/"
 
     test_ids = getIds(test_path)
     print(len(test_ids))
@@ -227,42 +233,43 @@ def eval_test_results(model, model_name, RGB=False):
     for i in range(0, len(test_gen)):
 
         source, target = test_gen.__getitem__(i)
+        print("source " + str(len(source))  + " target" + str(len(target)))
         target = np.array(target).astype('float32')
         temp_result = result[i*BATCH_SIZE:(i+1)*BATCH_SIZE,:]
         temp_result = np.array(temp_result.astype('float32'))
 
         print(target.shape, temp_result.shape)
-        
+
         for j in range(BATCH_SIZE):
-            temp_ssim = ssim(target[j], temp_result[j]).numpy() 
-            temp_mssim = ms_ssim(target[j], temp_result[j]).numpy()  
+            temp_ssim = ssim(target[j], temp_result[j]).numpy()
+            temp_mssim = ms_ssim(target[j], temp_result[j]).numpy()
             temp_mse = mse(target[j], temp_result[j]).numpy()
             temp_mae = mae(target[j], temp_result[j]).numpy()
-            temp_psnr = psnr(target[j], temp_result[j]).numpy()  
-            temp_uqi = fr.uqi(target[j], temp_result[j])  
-            
+            temp_psnr = psnr(target[j], temp_result[j]).numpy()
+            temp_uqi = fr.uqi(target[j], temp_result[j])
+
             ## Convert to grayscale
             if target[j].shape[2] == 3:
                 target[j] = cv.cvtColor(target[j],cv.COLOR_BGR2GRAY)
             if temp_result[j].shape[2] == 3:
                 temp_result[j] = cv.cvtColor(temp_result[j],cv.COLOR_BGR2GRAY)
-            
+
             img_g = target[j]*255
             img_p = temp_result[j]*255
-            
+
             ## Calculate histograms
             hist_g = cv.calcHist([img_g],[0],None,[256],[0,256])
             hist_p = cv.calcHist([img_p],[0],None,[256],[0,256])
             hist_gn = cv.normalize(hist_g, hist_g).flatten()
             hist_pn = cv.normalize(hist_p, hist_p).flatten()
-            
+
             ## Comparison
             temp_corr = cv.compareHist(hist_gn, hist_pn, cv.HISTCMP_CORREL)
             temp_inter = cv.compareHist(hist_gn, hist_pn, cv.HISTCMP_INTERSECT)
             temp_chisq = cv.compareHist(hist_gn, hist_pn, cv.HISTCMP_CHISQR)
             temp_bhatta = cv.compareHist(hist_gn, hist_pn, cv.HISTCMP_BHATTACHARYYA)
-            
-            
+
+
             predicted_ssim.append(temp_ssim)
             predicted_mssim.append(temp_mssim)
             predicted_mse.append(temp_mse)
@@ -275,7 +282,7 @@ def eval_test_results(model, model_name, RGB=False):
             predicted_bhatta.append(temp_bhatta)
 
             vals = [test_ids[i*BATCH_SIZE+j].strip(".png"), temp_ssim, temp_mssim, temp_mse, temp_mae, temp_psnr, temp_uqi, temp_corr, temp_inter, temp_chisq, temp_bhatta]
-            
+
             for col_num, data in enumerate(vals):
                 f.write(i*BATCH_SIZE+j+1, col_num, data)
 
@@ -386,15 +393,15 @@ def train_model(model):
     ## TRAINING
     
     # System paths
-    path = "ribs_suppresion/new/augmented/"
+    path = "augmented3/"
     source_path = path+"train/"
     valid_path = path+"val/"
     
     ## Validation / Training data
     #val_data_size = 720
 
-    train_ids = getIds(source_path+"JSRT/")
-    valid_ids = getIds(valid_path+"JSRT/")
+    train_ids = getIds(source_path+"orig/")
+    valid_ids = getIds(valid_path+"orig/")
     
     #valid_ids = train_ids[:val_data_size] 
     print("Validation:")
@@ -416,11 +423,11 @@ def train_model(model):
     print(train_steps)
     print(valid_steps)
     
-    model_name = 'XUNETFS'
-    filepath=".tf_checkpoints/512/"+model_name+"/"+model_name+"_b10_f128_best_weights_{epoch:02d}.hdf5"
-    checkpoint = ModelCheckpoint(filepath, verbose=1, save_weights_only=True, monitor='val_loss', save_best_only=True)
+    model_name = 'Unet'
+    filepath="model_tf_checkpoints/512/"+model_name+"/"+model_name+"_b10_f128_best_weights_{epoch:02d}.weights.h5"
+    checkpoint = ModelCheckpoint(filepath, verbose=1, save_weights_only=True, monitor='val_loss')
     lr_scheduler = LearningRateScheduler(lr_time_based_decay, verbose=1)
-    earlyStopping = EarlyStopping(monitor='val_loss', 
+    earlyStopping = EarlyStopping(monitor='val_loss',
                                patience=10, 
                                verbose=1, 
                                mode='min')
@@ -433,7 +440,8 @@ def train_model(model):
                     steps_per_epoch=train_steps,
                     validation_steps=valid_steps,
                     callbacks=callbacks_list,
-                    verbose=2)
+                    verbose=1)
+    model.save('my_model.h5')
     return history
 
 def train_debonet(model):
@@ -441,12 +449,12 @@ def train_debonet(model):
     # https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0265691
     
     # System paths
-    path = "ribs_suppresion/new/augmented/"
-    source_path = path+"train/"
-    valid_path = path+"val/"
+    path = "augmented2/"
+    source_path = path + "train/"
+    valid_path = path + "val/"
 
-    train_ids = getIds(source_path+"JSRT/")
-    valid_ids = getIds(valid_path+"JSRT/")
+    train_ids = getIds(source_path + "orig/")
+    valid_ids = getIds(valid_path + "orig/")
     
     print("Validation:")
     print(len(valid_ids))
@@ -499,7 +507,8 @@ def train_debonet(model):
                     steps_per_epoch=train_steps,
                     validation_steps=valid_steps,
                     callbacks=callbacks_list,
-                    verbose=2)
+                    verbose=1)
+    model.save('my_model.h5')
     return history
 
 ## LR SCHEDULER FOR KALISZ MARCZYK MODEL

@@ -1,24 +1,14 @@
 from utils import eval_results, test_model, load_model, load_weights, compile_model, eval_test_results, eval_test_results_woPred
-from UNet3P import UNet3P
-from UNetPP import UNetPP
-from UNet import UNet
-from Att_UNet import Att_UNet
-from Att_UNetPP import Att_UNetPP
-from DeepResUNet import DeepResUNet
-from UNetSharp import UNetSharp
-from DeBoNet import DeBoNet
-from Kalisz_AE import KaliszAE
-from xUNetFS import xUNetFS
-from Att_xUNetFS import Att_xUNetFS
-
+from models.UNet import UNet
+from models.xUNetFS import xUNetFS
 def main():
     # Define the name of the model
-    model_name='XUNETFS'
+    model_name='Unet'
     
     #model = DeBoNet(COMPILE=False, NAME=model_name)        # If DeBoNet
-    model = xUNetFS()
+    model = UNet()
     
-    load_weights(model, ".tf_checkpoints/512/"+model_name+"/"+model_name+"_b10_f128_best_weights_30.hdf5")
+    load_weights(model, "model_tf_checkpoints/512/"+model_name+"/Unet_b10_f128_best_weights_99.weights.h5")
 
     ## INTERNAL TEST SET
     eval_test_results(model, model_name, RGB=False)         # RGB = True is necessary for DeBoNet models

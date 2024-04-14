@@ -5,13 +5,13 @@ import keras
 import numpy as np
 from random import random
 import os
-from tensorflow.keras.utils import img_to_array
+from keras.utils import img_to_array
 
 seed = 2019
 np.random.seed = seed
 
 IMAGE_SIZE = 512
-BATCH_SIZE = 10
+BATCH_SIZE = 5
 
 def preprocess_image(image):
     img = cv.normalize(image, None, 0, 255, cv.NORM_MINMAX)
@@ -21,7 +21,7 @@ def preprocess_image(image):
 
 ## DATA GENERATOR
 
-class DataGen(keras.utils.data_utils.Sequence):
+class DataGen(keras.utils.Sequence):
     def __init__(self, ids, path, batch_size=BATCH_SIZE, image_size=IMAGE_SIZE, RGB=False):
         self.ids = ids
         self.path = path
@@ -31,25 +31,33 @@ class DataGen(keras.utils.data_utils.Sequence):
         self.on_epoch_end()
     
     def __load__(self, id_name):
-        image_path = self.path+ "JSRT/" + id_name
-        val_image_path = self.path + "BSE_JSRT/" + id_name
+        image_path = self.path+ "orig/" + id_name
+        val_image_path = self.path+ "label/" + id_name.replace("orig", "bonesupp")
         
         if self.RGB:
             img = cv.imread(image_path)
         else:
             img = cv.imread(image_path,0)
             img = np.expand_dims(img, axis = -1)
+
         
-        img = img_to_array(img)
-        
-        
-        val_img = cv.imread(val_image_path,0)
-        val_img = np.expand_dims(val_img, axis = -1)
+        if self.RGB:
+            val_img = cv.imread(val_image_path)
+        else:
+            val_img = cv.imread(val_image_path,0)
+            val_img = np.expand_dims(val_img, axis = -1)
+
+
+
         
         if (val_img.shape != (IMAGE_SIZE, IMAGE_SIZE, 1)):
             val_img = cv.resize(val_img, (IMAGE_SIZE, IMAGE_SIZE))
+
+        if (img.shape != (IMAGE_SIZE, IMAGE_SIZE, 1)):
+            img = cv.resize(img, (IMAGE_SIZE, IMAGE_SIZE))
         
         val_img = img_to_array(val_img)
+        img = img_to_array(img)
         
         # Normalization of the images    
         img = img / 255.0
@@ -70,7 +78,6 @@ class DataGen(keras.utils.data_utils.Sequence):
             _img, _val_img = self.__load__(id_name)
             image.append(_img)
             val_image.append(_val_img)
-
         image = np.array(image)
         val_image = np.array(val_image)
         
