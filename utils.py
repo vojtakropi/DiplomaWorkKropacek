@@ -26,7 +26,7 @@ np.random.seed = seed
 # Image size
 SIZE = 512
 INPUT_SHAPE = (SIZE, SIZE, 1)
-BATCH_SIZE = 5
+BATCH_SIZE = 2
 
 ## LOSS FUNCTIONS
 
@@ -389,7 +389,7 @@ def compile_model(model):
     
     return model
 
-def train_model(model):
+def train_model(model, model_name):
     ## TRAINING
     
     # System paths
@@ -422,8 +422,7 @@ def train_model(model):
     valid_steps = len(valid_ids) // BATCH_SIZE
     print(train_steps)
     print(valid_steps)
-    
-    model_name = 'Unet'
+
     filepath="model_tf_checkpoints/512/"+model_name+"/"+model_name+"_b10_f128_best_weights_{epoch:02d}.weights.h5"
     checkpoint = ModelCheckpoint(filepath, verbose=1, save_weights_only=True, monitor='val_loss')
     lr_scheduler = LearningRateScheduler(lr_time_based_decay, verbose=1)

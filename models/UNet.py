@@ -63,11 +63,12 @@ def UNet():
     
     p0 = inputs
     
-    ## Encoder
+    ## Encoder TODO: ADD MORE LAYERS
     c1, p1 = down_block(p0, f[0])
     c2, p2 = down_block(p1, f[1])
     c3, p3 = down_block(p2, f[2])
     c4, p4 = down_block(p3, f[3])
+
     
     bn = bottleneck(p4, f[4])  ## Bottleneck
     
