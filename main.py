@@ -1,6 +1,8 @@
 from utils import check_capabilities, load_model, load_weights, compile_model, train_model, save_model, save_weights, train_debonet, train_kalisz
 from models.CNN import CNN
 from models.xUNetFS import xUNetFS
+from models.UNet import UNet
+from models.Unet_ribs import UNet_ribs
 
 def main():
     ## Check the availability of GPU
@@ -10,7 +12,8 @@ def main():
     # with strategy.scope():
     ## Define the model
     # model = xUNetFS()
-    model = CNN()
+    # model = CNN()
+    model = UNet()
     
     ## Load weights if needed
     #load_weights(model, "PATH_TO_WEIGHTS")
@@ -21,9 +24,8 @@ def main():
     
     # Training
     #history = train_debonet(model)     ## For DeBoNet
-    history = train_model(model, model_name="CNN")
+    train_model(model, model_name="Unet")
     #history = train_kalisz(model)      ## For Kalisz Marczyk Autoencoder
-    save_model(history, "CNN")
-    save_weights(history, "CNN_weights")
+
 if __name__ == "__main__":
     main()

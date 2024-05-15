@@ -8,3 +8,14 @@ val
 val2
 subtracted
 dicom
+subtracted_norm
+subtracted_norm_val
+subtracted_val
+subtracted_512
+subtracted_512_val
+Unet_ribs
+Unet_ribs_norm
+UNET_ribs_au
+predictions_standard
+test50
+substracted_unetribs

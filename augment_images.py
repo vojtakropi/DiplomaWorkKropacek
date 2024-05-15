@@ -40,18 +40,19 @@ def image_augmentation():
     INPUT_SHAPE = (SIZE, SIZE, 1)
     print(tf.__version__)
 
-    path = ''
-    source_image_path = path + 'train/source/'
-    target_image_path = path + 'train/target2/'
+    path = 'train/'
+    path_ribs = 'subtracted_512/'
+    path_ribs_val = 'subtracted_512_val/'
+    source_image_path = path + 'source/'
+    target_image_path = path_ribs
+    path_val = 'val/'
 
-    source_val_image_path = path + 'val/source/'
-    target_val_image_path = path + 'val/target/'
+    source_val_image_path = path_val + 'source/'
+    target_val_image_path = path_ribs_val
 
     # Get Images
     source_image_names = sorted(glob(source_image_path + "*.png"))
     target_image_names = sorted(glob(target_image_path + "*.png"))
-    print(source_image_names)
-    print(target_image_names)
 
     source_val_image_names = sorted(glob(source_val_image_path + "*.png"))
     target_val_image_names = sorted(glob(target_val_image_path + "*.png"))
@@ -108,10 +109,10 @@ def image_augmentation():
         additional_targets={'image0': 'image'}
     )
 
-    target_train_path = path + "augmented3/train/"
-    target_val_path = path + "augmented3/val/"
+    target_train_path = "augmented_ribs/train/"
+    target_val_path = "augmented_ribs/val/"
 
-    for times in range(10):
+    for times in range(0):
         for i in tqdm(range(len(source_image_names))):
             image = cv.imread(source_image_names[i], 0)
             image0 = cv.imread(target_image_names[i], 0)
@@ -128,15 +129,17 @@ def image_augmentation():
 
             image = np.array(image)
             image0 = np.array(image0)
-            cv.imwrite(target_train_path + "/source/" + source_image_names[i].split('/')[-1][:-4] + "_" + str(
+            cv.imwrite(target_train_path + "source/" + source_image_names[i].split('/')[-1][:-4] + "_" + str(
                 times) + ".png", image)
-            cv.imwrite(target_train_path + "/target/" + source_image_names[i].split('/')[-1][:-4] + "_" + str(
+            cv.imwrite(target_train_path + "target/" + source_image_names[i].split('/')[-1][:-4] + "_" + str(
                 times) + ".png", image0)
 
     for times in range(10):
         for i in tqdm(range(len(source_val_image_names))):
             image = cv.imread(source_val_image_names[i], 0)
             image0 = cv.imread(target_val_image_names[i], 0)
+            image = cv.resize(image, (SIZE, SIZE), cv.INTER_CUBIC)
+            image0 = cv.resize(image0, (SIZE, SIZE), cv.INTER_CUBIC)
 
             image = cv.normalize(image, None, 0, 255, cv.NORM_MINMAX)
             image0 = cv.normalize(image0, None, 0, 255, cv.NORM_MINMAX)
@@ -149,9 +152,9 @@ def image_augmentation():
             image = np.array(image)
             image0 = np.array(image0)
 
-            cv.imwrite(target_val_path + "/source/" + source_val_image_names[i].split('/')[-1][:-4] + "_" + str(times) + ".png",
+            cv.imwrite(target_val_path + "source/" + source_val_image_names[i].split('/')[-1][:-4] + "_" + str(times) + ".png",
                        image)
-            cv.imwrite(target_val_path + "/target/" + source_val_image_names[i].split('/')[-1][:-4] + "_" + str(times) + ".png",
+            cv.imwrite(target_val_path + "target/" + source_val_image_names[i].split('/')[-1][:-4] + "_" + str(times) + ".png",
                        image0)
 
 

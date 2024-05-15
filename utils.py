@@ -1,4 +1,5 @@
 # Core
+import cv2
 import tensorflow as tf
 import keras
 import sys
@@ -26,7 +27,7 @@ np.random.seed = seed
 # Image size
 SIZE = 512
 INPUT_SHAPE = (SIZE, SIZE, 1)
-BATCH_SIZE = 2
+BATCH_SIZE = 1
 
 ## LOSS FUNCTIONS
 
@@ -133,9 +134,9 @@ def load_weights(model, file_name):
 
 ## INTERNAL TEST SET
 def get_test_data(RGB=False):
-    t_path = "val/"
+    t_path = "D:/unetfs/val/"
 
-    test_path = t_path + "orig/"
+    test_path = t_path + "source/"
 
     test_ids = getIds(test_path)
     print(len(test_ids))
@@ -209,7 +210,7 @@ def eval_results(results, ids, model_name):
 def eval_test_results(model, model_name, RGB=False):
     test_gen, test_ids = get_test_data(RGB=RGB)
     print(len(test_gen))
-    result = model.predict(test_gen)
+    # result = model.predict(test_gen)
 
     metrics = ["IMAGE", "SSIM", "MS-SSIM", "MSE", "MAE", "PSNR", "UQI", "CORRELATION", "INTERSECTION", "CHI_SQUARED", "BHATTACHARYYA"]
 
@@ -231,11 +232,9 @@ def eval_test_results(model, model_name, RGB=False):
         f.write(0, col_num, data)
 
     for i in range(0, len(test_gen)):
-
         source, target = test_gen.__getitem__(i)
-        print("source " + str(len(source))  + " target" + str(len(target)))
         target = np.array(target).astype('float32')
-        temp_result = result[i*BATCH_SIZE:(i+1)*BATCH_SIZE,:]
+        temp_result = source
         temp_result = np.array(temp_result.astype('float32'))
 
         print(target.shape, temp_result.shape)
@@ -382,7 +381,7 @@ def compile_model(model):
 
     model.compile(
     optimizer = tf.keras.optimizers.Adam(learning_rate=initial_lr),
-    loss = [l1_ssim],
+    loss = ["mean_squared_error"],
     metrics = [ms_ssim, ssim, mse, mae, psnr]
     )
     model.summary()
@@ -393,15 +392,15 @@ def train_model(model, model_name):
     ## TRAINING
     
     # System paths
-    path = "augmented3/"
+    path = "ribs_noaug/"
     source_path = path+"train/"
     valid_path = path+"val/"
     
     ## Validation / Training data
     #val_data_size = 720
 
-    train_ids = getIds(source_path+"orig/")
-    valid_ids = getIds(valid_path+"orig/")
+    train_ids = getIds(source_path+"source/")
+    valid_ids = getIds(valid_path+"source/")
     
     #valid_ids = train_ids[:val_data_size] 
     print("Validation:")
@@ -424,14 +423,14 @@ def train_model(model, model_name):
     print(valid_steps)
 
     filepath="model_tf_checkpoints/512/"+model_name+"/"+model_name+"_b10_f128_best_weights_{epoch:02d}.weights.h5"
-    checkpoint = ModelCheckpoint(filepath, verbose=1, save_weights_only=True, monitor='val_loss')
+    checkpoint = ModelCheckpoint(filepath, verbose=1, save_weights_only=True, monitor='val_loss', mode='min', save_best_only=True)
     lr_scheduler = LearningRateScheduler(lr_time_based_decay, verbose=1)
     earlyStopping = EarlyStopping(monitor='val_loss',
                                patience=10, 
                                verbose=1, 
                                mode='min')
     
-    callbacks_list = [checkpoint, lr_scheduler, earlyStopping]
+    callbacks_list = [checkpoint, lr_scheduler]
     
     history = model.fit(train_gen,
                     epochs = epochs,
